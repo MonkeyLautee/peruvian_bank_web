@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Mi cuenta - Banco Peruano</title>
+<link rel="canonical" href="https://yosyrick-business.web.app/cuenta">
+<meta name="description" content="Tu cuenta en Banco Peruano. Tu banco para depositar y transferir.">
+<meta name="keywords" content="banco,deposita,cuenta,transfiere,consultar sueldo">
+<meta name="author" content="Ricardo Lau">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<meta property="og:title" content="Mi cuenta - Banco Peruano">
+<meta property="og:description" content="Revisa tu cuenta, transfiere y deposita.">
+<meta property="og:image" content="https://yosyrick-business.web.app/assets/icon-180.png">
+<meta name="theme-color" content="rgb(0,42,141)">
+<meta name="apple-mobile-web-app-title" content="Banco Peruano">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<meta name="msapplication-TileImage" content="assets/icon-144.png">
+<meta name="msapplication-TileColor" content="rgb(0,42,141)">
+<script src="helper.js"></script><link rel="stylesheet" href="styles.css">
+<style>
+  h1,#logout{text-align:center}
+  section span{font-size:28px;font-weight:bold}
+  #logout{font-size:18px;text-decoration:underline;cursor:pointer}
+</style>
+<script type="module">
+  import {auth} from './auth.js';
+  import {db} from './db.js';
+
+  const getBalance=async()=>{
+    doLoad(true)
+    try{
+      let user = auth.getUser()
+      if(user==null){throw 'User is null'}
+      let balance = await db.getBankBalance(user.uid)
+      if(balance==null){throw 'Balance is null'}
+      document.querySelector('section span').innerHTML = 'S/'+balance
+      window.balance = balance
+    }
+    catch(e){
+      alert('Debes iniciar sesión')
+      console.log(e)
+      window.open('/iniciar-sesion','_self')
+    }
+    finally{doLoad(false)}
+  }
+  
+  window.withdraw=async()=>{
+    if(balance==null){alert('Hubo un error de conexión');return}
+    let amount = parseFloat(prompt('Monto a retirar:'))
+    if(isNaN(amount) || amount <= 0){
+      alert('Ingresa un monto válido')
+      return
+    }
+    if(amount > balance){
+      alert('Ingresa un monto menor a tu saldo')
+      return
+    }
+    doLoad(true)
+    try{
+      let user = auth.getUser()
+      if(user==null){throw 'User is null'}
+      let newBalance = await db.withdraw(user.uid,amount)
+      document.querySelector('section span').innerHTML = 'S/'+newBalance
+      alert('Operación exitosa')
+    }
+    catch(e){alert('Ocurrió un error')}
+    finally{doLoad(false)}
+  }
+  
+  window.deposit=async()=>{
+    if(balance==null){alert('Hubo un error de conexión');return}
+    let amount = parseFloat(prompt('Monto a depositar:'))
+    if(isNaN(amount) || amount <= 0){
+      alert('Ingresa un monto válido')
+      return
+    }
+    doLoad(true)
+    try{
+      let user = auth.getUser()
+      if(user==null){throw 'User is null'}
+      let newBalance = await db.deposit(user.uid,amount)
+      document.querySelector('section span').innerHTML = 'S/'+newBalance
+      alert('Operación exitosa')
+    }
+    catch(e){alert('Ocurrió un error')}
+    finally{doLoad(false)}
+  }
+
+  window.logOut=async()=>{
+    doLoad(true)
+    try{
+      await auth.logOut()
+      window.open('/','_self')
+    }
+    catch(e){alert('Ocurrió un error')}
+    finally{doLoad(false)}
+  }
+  
+  auth.onAuthChanged((user)=>{
+    if(user){getBalance()}
+  })
+</script>
+</head>
+<body>
+<header></header>
+<h1 class="txt-color">Mi cuenta</h1>
+<section class="std-p">
+  <h2 class="txt-color2">Mi saldo</h2>
+  <p>Cuentas con: <span id="money"></span></p>
+  <h2 class="txt-color2">Mis operaciones</h2>
+  <div class="c sp-ev">
+    <button class="but bg s16 bold" onclick="withdraw()">Retirar</button>
+    <button class="but bg2 s16 bold" onclick="deposit()">Depositar</button>
+  </div>
+  <br><p id="logout" onclick="logOut()">Cerrar sesión</p><br>
+</section>
+<footer></footer>
+</body>
+</html>
